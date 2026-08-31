@@ -337,6 +337,65 @@
   <div id="actionTidakPenutup" class="footer-action hidden"></div>
 
   <script>
+    // =========================
+    // DATABASE / SESSION
+    // =========================
+    const API_URL = 'https://bdbates-database.infy.click/api.php';
+
+    // ID unik browser/perangkat (tidak menyimpan nama atau password)
+    let pengunjungId = localStorage.getItem('pengunjung_id');
+    if (!pengunjungId) {
+      pengunjungId = (window.crypto && crypto.randomUUID)
+        ? crypto.randomUUID()
+        : 'pengunjung-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('pengunjung_id', pengunjungId);
+    }
+
+    // Tambahkan ?test=1 pada URL untuk mode TEST.
+    // URL normal tanpa parameter = ASLI.
+    const MODE = new URLSearchParams(window.location.search).has('test')
+      ? 'TEST'
+      : 'ASLI';
+
+    // Data yang dikumpulkan selama satu kali pengisian
+    let dataUltah = {
+      mode: MODE,
+      pilihan_kado: null,
+      metode_pengiriman: null,
+      jumlah_prank: 0,
+      alasan_tidak: null
+    };
+
+    async function simpanDataUltah() {
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: 'save',
+            pengunjung_id: pengunjungId,
+            mode: dataUltah.mode,
+            pilihan_kado: dataUltah.pilihan_kado,
+            metode_pengiriman: dataUltah.metode_pengiriman,
+            jumlah_prank: dataUltah.jumlah_prank,
+            alasan_tidak: dataUltah.alasan_tidak
+          })
+        });
+
+        const result = await response.json();
+        console.log('Hasil simpan database:', result);
+        return result;
+      } catch (error) {
+        console.error('Gagal mengirim data ke database:', error);
+        return { success: false };
+      }
+    }
+
+    // =========================
+    // SISTEM MUSIK
+    // =========================
     let isMusicPlaying = false;
     let currentTrack = '';
 
@@ -466,6 +525,11 @@
 
     function prosesKabur(e) {
       if (e) e.preventDefault();
+
+      // Setiap kali tombol rumah berhasil memicu prank, hitung +1.
+      dataUltah.jumlah_prank++;
+      console.log('Jumlah prank:', dataUltah.jumlah_prank);
+
       tingkatKesulitan++;
       btnKabur.classList.add('lari-lari');
 
@@ -504,8 +568,14 @@
 
     btnKabur.addEventListener('click', prosesKabur);
 
-    function selesaiMau(metode) {
+    async function selesaiMau(metode) {
       const kado = document.getElementById('kadoInput').value || 'Sesuatu yang spesial';
+
+      // Simpan jawaban MAU ke data yang akan dikirim ke database.
+      dataUltah.pilihan_kado = kado;
+      dataUltah.metode_pengiriman = metode;
+      dataUltah.alasan_tidak = null;
+      await simpanDataUltah();
 
       document.getElementById('stepMau2').classList.add('hidden');
       document.getElementById('actionMau2').classList.add('hidden');
@@ -515,8 +585,14 @@
         `Siap! Kado "${kado}" bakal disiapin dan ${metode.toLowerCase()}. Tunggu ya! 🎁🎉`;
     }
 
-    function selesaiTidak() {
+    async function selesaiTidak() {
       const alasan = document.getElementById('alasanInput').value || 'Nggak apa-apa';
+
+      // Simpan jawaban TIDAK ke database.
+      dataUltah.pilihan_kado = null;
+      dataUltah.metode_pengiriman = null;
+      dataUltah.alasan_tidak = alasan;
+      await simpanDataUltah();
 
       document.getElementById('stepTidak1').classList.add('hidden');
       document.getElementById('actionTidak1').classList.add('hidden');
