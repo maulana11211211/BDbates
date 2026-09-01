@@ -114,7 +114,7 @@
       width: 100%;
       max-width: 360px;
       z-index: 1;
-      margin-bottom: 35px; /* DIUBAH DARI 10px JADI 35px BIAR NAIK DIKIT AJA */
+      margin-bottom: 35px;
       display: flex;
       flex-direction: row; 
       gap: 10px;
@@ -213,17 +213,17 @@
 <body>
 
   <!-- Audio Elements -->
-  <audio id="audioHbd" src="HBD MUSIC.m4a" loop></audio>
-  <audio id="audioMotivation" src="about you html.m4a" loop></audio>
+  <audio id="audioHbd" src="HBD MUSIC.m4a" preload="none" loop></audio>
+  <audio id="audioMotivation" src="about you html.m4a" preload="none" loop></audio>
 
   <!-- Video Backgrounds -->
-  <video id="bgVideo1" class="bg-video" autoplay muted loop playsinline>
+  <video id="bgVideo1" class="bg-video" preload="none" muted loop playsinline>
     <source src="motivation 1.mp4" type="video/mp4">
   </video>
-  <video id="bgVideo2" class="bg-video" autoplay muted loop playsinline>
+  <video id="bgVideo2" class="bg-video" preload="none" muted loop playsinline>
     <source src="motivation 2.mp4" type="video/mp4">
   </video>
-  <video id="bgVideo3" class="bg-video" autoplay muted loop playsinline>
+  <video id="bgVideo3" class="bg-video" preload="none" muted loop playsinline>
     <source src="motivation 3.mp4" type="video/mp4">
   </video>
 
@@ -301,11 +301,8 @@
     <h2>Metode Pengiriman 📦</h2>
     <p>Pilih pengirimannya mau gimana?</p>
     <div class="shipping-options">
-      <!-- Opsi Normal (Diantar tukang paket) -->
       <button class="btn-shipping" onclick="selesaiMau('Diantar sama tukang paket')">📦 Diantar sama tukang paket</button>
-      
-      <!-- Opsi Usil (Kabur ketika diklik / di-hover) -->
-      <button id="btnKabur" class="btn-shipping">🏡 Langsung diantar ke depan rumah</button>
+      <button id="btnKabur" class="btn-shipping" onclick="selesaiMau('Langsung diantar ke depan rumah')">🏡 Langsung diantar ke depan rumah</button>
     </div>
   </div>
   <div id="actionMau2" class="footer-action hidden">
@@ -337,27 +334,12 @@
   <div id="actionTidakPenutup" class="footer-action hidden"></div>
 
   <script>
-    // =========================
-    // DATABASE / SESSION
-    // =========================
-    const API_URL = 'https://bdbates-database.infy.click/api.php';
+    /* =========================================
+       SISTEM DATABASE INFINITYFREE
+    ========================================= */
+    const API_URL = "https://bdbates-database.infy.click/api.php";
+    const MODE = new URLSearchParams(window.location.search).has("test") ? "TEST" : "ASLI";
 
-    // ID unik browser/perangkat (tidak menyimpan nama atau password)
-    let pengunjungId = localStorage.getItem('pengunjung_id');
-    if (!pengunjungId) {
-      pengunjungId = (window.crypto && crypto.randomUUID)
-        ? crypto.randomUUID()
-        : 'pengunjung-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-      localStorage.setItem('pengunjung_id', pengunjungId);
-    }
-
-    // Tambahkan ?test=1 pada URL untuk mode TEST.
-    // URL normal tanpa parameter = ASLI.
-    const MODE = new URLSearchParams(window.location.search).has('test')
-      ? 'TEST'
-      : 'ASLI';
-
-    // Data yang dikumpulkan selama satu kali pengisian
     let dataUltah = {
       mode: MODE,
       pilihan_kado: null,
@@ -366,36 +348,30 @@
       alasan_tidak: null
     };
 
-    async function simpanDataUltah() {
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            action: 'save',
-            pengunjung_id: pengunjungId,
-            mode: dataUltah.mode,
-            pilihan_kado: dataUltah.pilihan_kado,
-            metode_pengiriman: dataUltah.metode_pengiriman,
-            jumlah_prank: dataUltah.jumlah_prank,
-            alasan_tidak: dataUltah.alasan_tidak
-          })
-        });
-
-        const result = await response.json();
-        console.log('Hasil simpan database:', result);
-        return result;
-      } catch (error) {
-        console.error('Gagal mengirim data ke database:', error);
-        return { success: false };
-      }
+    function simpanKeDatabase() {
+      console.log("Mengirim data ke database...", dataUltah);
+      fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "save",
+          mode: dataUltah.mode,
+          pilihan_kado: dataUltah.pilihan_kado,
+          metode_pengiriman: dataUltah.metode_pengiriman,
+          jumlah_prank: dataUltah.jumlah_prank,
+          alasan_tidak: dataUltah.alasan_tidak
+        })
+      })
+      .then(res => res.json())
+      .then(resData => console.log("Hasil simpan database:", resData))
+      .catch(err => console.error("Gagal simpan database:", err));
     }
 
-    // =========================
-    // SISTEM MUSIK
-    // =========================
+    /* =========================================
+       SISTEM MUSIK & TAMPILAN
+    ========================================= */
     let isMusicPlaying = false;
     let currentTrack = '';
 
@@ -448,7 +424,7 @@
       const vid = document.getElementById('bgVideo' + videoNum);
       if (vid) {
         vid.style.display = 'block';
-        vid.play();
+        vid.play().catch(e => console.log(e));
       }
     }
 
@@ -519,16 +495,13 @@
       }
     }
 
-    /* LOGIKA TOMBOL LARI-LARI */
+    /* LOGIKA TOMBOL LARI-LARI & PENGHITUNG PRANK */
     const btnKabur = document.getElementById('btnKabur');
     let tingkatKesulitan = 0;
 
     function prosesKabur(e) {
-      if (e) e.preventDefault();
-
-      // Setiap kali tombol rumah berhasil memicu prank, hitung +1.
+      // Hitung setiap kali tombol berhasil disentuh/didekati/diklik
       dataUltah.jumlah_prank++;
-      console.log('Jumlah prank:', dataUltah.jumlah_prank);
 
       tingkatKesulitan++;
       btnKabur.classList.add('lari-lari');
@@ -537,7 +510,6 @@
       const maxY = window.innerHeight - btnKabur.offsetHeight - 30;
 
       if (tingkatKesulitan === 1) {
-        // Klik 1: Pindah dekat
         let currentLeft = btnKabur.getBoundingClientRect().left;
         let currentTop = btnKabur.getBoundingClientRect().top;
         
@@ -550,7 +522,6 @@
         btnKabur.style.left = `${targetX}px`;
         btnKabur.style.top = `${targetY}px`;
       } else {
-        // Klik 2: Pindah jauh random
         const randomX = Math.floor(Math.random() * maxX);
         const randomY = Math.floor(Math.random() * maxY);
         
@@ -558,9 +529,9 @@
         btnKabur.style.top = `${Math.max(20, randomY)}px`;
       }
 
-      // Klik 3: Makin susah, didekati/hover langsung lari otomatis
       if (tingkatKesulitan >= 2) {
-        btnKabur.removeEventListener('click', prosesKabur);
+        btnKabur.removeEventListener('mouseenter', prosesKabur);
+        btnKabur.removeEventListener('touchstart', prosesKabur);
         btnKabur.addEventListener('mouseenter', prosesKabur);
         btnKabur.addEventListener('touchstart', prosesKabur);
       }
@@ -568,14 +539,12 @@
 
     btnKabur.addEventListener('click', prosesKabur);
 
-    async function selesaiMau(metode) {
+    /* SELESAI & SIMPAN DATA */
+    function selesaiMau(metode) {
       const kado = document.getElementById('kadoInput').value || 'Sesuatu yang spesial';
 
-      // Simpan jawaban MAU ke data yang akan dikirim ke database.
       dataUltah.pilihan_kado = kado;
       dataUltah.metode_pengiriman = metode;
-      dataUltah.alasan_tidak = null;
-      await simpanDataUltah();
 
       document.getElementById('stepMau2').classList.add('hidden');
       document.getElementById('actionMau2').classList.add('hidden');
@@ -583,16 +552,15 @@
       document.getElementById('stepMauPenutup').classList.remove('hidden');
       document.getElementById('pesanAkhirMau').innerText = 
         `Siap! Kado "${kado}" bakal disiapin dan ${metode.toLowerCase()}. Tunggu ya! 🎁🎉`;
+
+      // KIRIM KE DATABASE INFINITYFREE
+      simpanKeDatabase();
     }
 
-    async function selesaiTidak() {
+    function selesaiTidak() {
       const alasan = document.getElementById('alasanInput').value || 'Nggak apa-apa';
 
-      // Simpan jawaban TIDAK ke database.
-      dataUltah.pilihan_kado = null;
-      dataUltah.metode_pengiriman = null;
       dataUltah.alasan_tidak = alasan;
-      await simpanDataUltah();
 
       document.getElementById('stepTidak1').classList.add('hidden');
       document.getElementById('actionTidak1').classList.add('hidden');
@@ -600,6 +568,9 @@
       document.getElementById('stepTidakPenutup').classList.remove('hidden');
       document.getElementById('pesanAkhirTidak').innerText = 
         `Gak apa-apa kok kalau gak mau kado. Alasan kamu ("${alasan}") udah dicatet. Yang penting kamu bahagia di hari ultah ini! 🤍`;
+
+      // KIRIM KE DATABASE INFINITYFREE
+      simpanKeDatabase();
     }
   </script>
 </body>
