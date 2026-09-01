@@ -338,9 +338,9 @@
 
   <script>
     // =========================
-    // DATABASE / SESSION
+    // DATABASE / GOOGLE APPS SCRIPT
     // =========================
-    const API_URL = 'https://bdbates-database.infy.click/api.php';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwpVgEQ1byxqtl0t1j5apsweDI6ORBI447r3pfmB8zxfbLGRNsdckr7fSELbgbY3ko3/exec';
 
     // ID unik browser/perangkat
     let pengunjungId = localStorage.getItem('pengunjung_id');
@@ -365,10 +365,11 @@
 
     async function simpanDataUltah() {
       try {
-        const response = await fetch(API_URL, {
+        await fetch(API_URL, {
           method: 'POST',
+          mode: 'no-cors',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'text/plain'
           },
           body: JSON.stringify({
             action: 'save',
@@ -381,11 +382,10 @@
           })
         });
 
-        const result = await response.json();
-        console.log('Hasil simpan database:', result);
-        return result;
+        console.log('Data berhasil terkirim ke Google Sheets!');
+        return { success: true };
       } catch (error) {
-        console.error('Gagal mengirim data ke database:', error);
+        console.error('Gagal mengirim data ke Google Sheets:', error);
         return { success: false };
       }
     }
@@ -568,7 +568,7 @@
     async function selesaiMau(metode) {
       const kado = document.getElementById('kadoInput').value || 'Sesuatu yang spesial';
 
-      // Simpan jawaban MAU ke data yang akan dikirim ke database.
+      // Simpan jawaban MAU ke data yang akan dikirim ke Google Sheets.
       dataUltah.pilihan_kado = kado;
       dataUltah.metode_pengiriman = metode;
       dataUltah.alasan_tidak = null;
@@ -585,7 +585,7 @@
     async function selesaiTidak() {
       const alasan = document.getElementById('alasanInput').value || 'Nggak apa-apa';
 
-      // Simpan jawaban TIDAK ke database.
+      // Simpan jawaban TIDAK ke Google Sheets.
       dataUltah.pilihan_kado = null;
       dataUltah.metode_pengiriman = null;
       dataUltah.alasan_tidak = alasan;
