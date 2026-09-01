@@ -200,7 +200,7 @@
       background-color: #ff4d6d;
       color: white;
       box-shadow: 0 4px 12px rgba(255, 77, 109, 0.35);
-      transition: transform 0.2s ease, background-color 0.3s, left 0.2s ease, top 0.2s ease;
+      transition: transform 0.2s ease, background-color 0.3s;
     }
 
     .btn-shipping.lari-lari {
@@ -301,10 +301,10 @@
     <h2>Metode Pengiriman 📦</h2>
     <p>Pilih pengirimannya mau gimana?</p>
     <div class="shipping-options">
-      <!-- Opsi Normal -->
+      <!-- Opsi Normal (Diantar tukang paket) -->
       <button class="btn-shipping" onclick="selesaiMau('Diantar sama tukang paket')">📦 Diantar sama tukang paket</button>
       
-      <!-- Opsi Prank (Kabur saat didekati / disentuh, lalu bisa diklik) -->
+      <!-- Opsi Usil (Kabur ketika diklik / di-hover) -->
       <button id="btnKabur" class="btn-shipping">🏡 Langsung diantar ke depan rumah</button>
     </div>
   </div>
@@ -326,7 +326,7 @@
   </div>
   <div id="actionTidak1" class="footer-action hidden">
     <button class="btn-music" onclick="toggleMusic()">🔊</button>
-    <button class="btn-main" id="btnKirimTidak" onclick="selesaiTidak()">Kirim ➔</button>
+    <button class="btn-main" onclick="selesaiTidak()">Kirim ➔</button>
   </div>
 
   <!-- PENUTUP TIDAK MAU KADO -->
@@ -342,6 +342,7 @@
     // =========================
     const API_URL = 'https://bdbates-database.infy.click/api.php';
 
+    // ID unik browser/perangkat
     let pengunjungId = localStorage.getItem('pengunjung_id');
     if (!pengunjungId) {
       pengunjungId = (window.crypto && crypto.randomUUID)
@@ -350,7 +351,9 @@
       localStorage.setItem('pengunjung_id', pengunjungId);
     }
 
-    const MODE = new URLSearchParams(window.location.search).has('test') ? 'TEST' : 'ASLI';
+    const MODE = new URLSearchParams(window.location.search).has('test')
+      ? 'TEST'
+      : 'ASLI';
 
     let dataUltah = {
       mode: MODE,
@@ -388,7 +391,7 @@
     }
 
     // =========================
-    // SISTEM MUSIK & VIDEO
+    // SISTEM MUSIK
     // =========================
     let isMusicPlaying = false;
     let currentTrack = '';
@@ -429,10 +432,12 @@
     }
 
     function hideAllVideos() {
-      ['bgVideo1', 'bgVideo2', 'bgVideo3'].forEach(id => {
-        const vid = document.getElementById(id);
-        if (vid) { vid.style.display = 'none'; vid.pause(); }
-      });
+      document.getElementById('bgVideo1').style.display = 'none';
+      document.getElementById('bgVideo1').pause();
+      document.getElementById('bgVideo2').style.display = 'none';
+      document.getElementById('bgVideo2').pause();
+      document.getElementById('bgVideo3').style.display = 'none';
+      document.getElementById('bgVideo3').pause();
     }
 
     function showVideo(videoNum) {
@@ -440,7 +445,7 @@
       const vid = document.getElementById('bgVideo' + videoNum);
       if (vid) {
         vid.style.display = 'block';
-        vid.play().catch(e => console.log(e));
+        vid.play();
       }
     }
 
@@ -511,74 +516,68 @@
       }
     }
 
-    // ==========================================
-    // LOGIKA TOMBOL PENGIRIMAN RUMAH (PRANK & KLIK)
-    // ==========================================
+    /* LOGIKA TOMBOL LARI-LARI */
     const btnKabur = document.getElementById('btnKabur');
     let tingkatKesulitan = 0;
-    const MAX_PRANK = 4; // Setelah 4x kabur, tombol pasrah dan bisa diklik!
 
-    function hindariPengguna(e) {
-      if (tingkatKesulitan >= MAX_PRANK) return; // Jika sudah pasrah, jangan kabur lagi
-
+    function prosesKabur(e) {
       if (e) e.preventDefault();
 
+      // Setiap kali tombol rumah berhasil memicu prank, hitung +1.
       dataUltah.jumlah_prank++;
+      console.log('Jumlah prank:', dataUltah.jumlah_prank);
+
       tingkatKesulitan++;
       btnKabur.classList.add('lari-lari');
 
-      const maxX = Math.max(10, window.innerWidth - btnKabur.offsetWidth - 30);
-      const maxY = Math.max(10, window.innerHeight - btnKabur.offsetHeight - 30);
+      const maxX = window.innerWidth - btnKabur.offsetWidth - 30;
+      const maxY = window.innerHeight - btnKabur.offsetHeight - 30;
 
-      const randomX = Math.floor(Math.random() * maxX);
-      const randomY = Math.floor(Math.random() * maxY);
+      if (tingkatKesulitan === 1) {
+        // Klik 1: Pindah dekat
+        let currentLeft = btnKabur.getBoundingClientRect().left;
+        let currentTop = btnKabur.getBoundingClientRect().top;
+        
+        let moveX = Math.random() < 0.5 ? 90 : -90;
+        let moveY = Math.random() < 0.5 ? 90 : -90;
+        
+        let targetX = Math.max(20, Math.min(maxX, currentLeft + moveX));
+        let targetY = Math.max(20, Math.min(maxY, currentTop + moveY));
 
-      btnKabur.style.left = `${Math.max(15, randomX)}px`;
-      btnKabur.style.top = `${Math.max(15, randomY)}px`;
-
-      if (tingkatKesulitan >= MAX_PRANK) {
-        btnKabur.innerText = "Yaudah Deh, Klik Aku! 🏡";
-        btnKabur.style.backgroundColor = "#28a745"; // Warna hijau tanda siap diklik
+        btnKabur.style.left = `${targetX}px`;
+        btnKabur.style.top = `${targetY}px`;
       } else {
-        btnKabur.innerText = `🏡 Langsung diantar ke depan rumah (${MAX_PRANK - tingkatKesulitan})`;
+        // Klik 2: Pindah jauh random
+        const randomX = Math.floor(Math.random() * maxX);
+        const randomY = Math.floor(Math.random() * maxY);
+        
+        btnKabur.style.left = `${Math.max(20, randomX)}px`;
+        btnKabur.style.top = `${Math.max(20, randomY)}px`;
+      }
+
+      // Klik 3: Makin susah, didekati/hover langsung lari otomatis
+      if (tingkatKesulitan >= 2) {
+        btnKabur.removeEventListener('click', prosesKabur);
+        btnKabur.addEventListener('mouseenter', prosesKabur);
+        btnKabur.addEventListener('touchstart', prosesKabur);
       }
     }
 
-    btnKabur.addEventListener('mouseenter', hindariPengguna);
-    btnKabur.addEventListener('touchstart', function(e) {
-      if (tingkatKesulitan < MAX_PRANK) {
-        hindariPengguna(e);
-      }
-    }, { passive: false });
+    btnKabur.addEventListener('click', prosesKabur);
 
-    btnKabur.addEventListener('click', function(e) {
-      if (tingkatKesulitan < MAX_PRANK) {
-        hindariPengguna(e);
-      } else {
-        // Panggil fungsi selesai saat berhasil diklik setelah kabur!
-        selesaiMau('Langsung diantar ke depan rumah (dianter sendiri 🎉)');
-      }
-    });
-
-    // =========================
-    // SELESAI & SIMPAN DATA
-    // =========================
     async function selesaiMau(metode) {
       const kado = document.getElementById('kadoInput').value || 'Sesuatu yang spesial';
 
+      // Simpan jawaban MAU ke data yang akan dikirim ke database.
       dataUltah.pilihan_kado = kado;
       dataUltah.metode_pengiriman = metode;
       dataUltah.alasan_tidak = null;
+      await simpanDataUltah();
 
-      // Sembunyikan form dan tampilkan pesan loading sebentar
       document.getElementById('stepMau2').classList.add('hidden');
       document.getElementById('actionMau2').classList.add('hidden');
       
       document.getElementById('stepMauPenutup').classList.remove('hidden');
-      document.getElementById('pesanAkhirMau').innerText = "Menyimpan pilihan kamu... ⏳";
-
-      await simpanDataUltah();
-
       document.getElementById('pesanAkhirMau').innerText = 
         `Siap! Kado "${kado}" bakal disiapin dan ${metode.toLowerCase()}. Tunggu ya! 🎁🎉`;
     }
@@ -586,18 +585,16 @@
     async function selesaiTidak() {
       const alasan = document.getElementById('alasanInput').value || 'Nggak apa-apa';
 
+      // Simpan jawaban TIDAK ke database.
       dataUltah.pilihan_kado = null;
       dataUltah.metode_pengiriman = null;
       dataUltah.alasan_tidak = alasan;
+      await simpanDataUltah();
 
       document.getElementById('stepTidak1').classList.add('hidden');
       document.getElementById('actionTidak1').classList.add('hidden');
       
       document.getElementById('stepTidakPenutup').classList.remove('hidden');
-      document.getElementById('pesanAkhirTidak').innerText = "Mencatat alasan kamu... ⏳";
-
-      await simpanDataUltah();
-
       document.getElementById('pesanAkhirTidak').innerText = 
         `Gak apa-apa kok kalau gak mau kado. Alasan kamu ("${alasan}") udah dicatet. Yang penting kamu bahagia di hari ultah ini! 🤍`;
     }
