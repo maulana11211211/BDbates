@@ -187,6 +187,8 @@
       gap: 10px;
       margin-top: 8px;
       width: 100%;
+      position: relative;
+      min-height: 110px;
     }
 
     .btn-shipping {
@@ -204,9 +206,9 @@
     }
 
     .btn-shipping.lari-lari {
-      position: fixed !important;
+      position: absolute !important;
       z-index: 9999;
-      width: 260px !important;
+      width: 100% !important;
     }
   </style>
 </head>
@@ -300,7 +302,7 @@
   <div id="stepMau2" class="card hidden">
     <h2>Metode Pengiriman 📦</h2>
     <p>Pilih pengirimannya mau gimana?</p>
-    <div class="shipping-options">
+    <div class="shipping-options" id="shippingContainer">
       <button class="btn-shipping" onclick="selesaiMau('Diantar sama tukang paket')">📦 Diantar sama tukang paket</button>
       <button id="btnKabur" class="btn-shipping" onclick="selesaiMau('Langsung diantar ke depan rumah')">🏡 Langsung diantar ke depan rumah</button>
     </div>
@@ -350,6 +352,8 @@
 
     function simpanKeDatabase() {
       console.log("Mengirim data ke database...", dataUltah);
+      
+      // Menggunakan fetch dengan keepalive agar data tetap terkirim walau halaman berpindah state
       fetch(API_URL, {
         method: "POST",
         headers: {
@@ -362,7 +366,8 @@
           metode_pengiriman: dataUltah.metode_pengiriman,
           jumlah_prank: dataUltah.jumlah_prank,
           alasan_tidak: dataUltah.alasan_tidak
-        })
+        }),
+        keepalive: true
       })
       .then(res => res.json())
       .then(resData => console.log("Hasil simpan database:", resData))
@@ -495,49 +500,33 @@
       }
     }
 
-    /* LOGIKA TOMBOL LARI-LARI & PENGHITUNG PRANK */
+    /* =========================================
+       LOGIKA TOMBOL LARI-LARI & PRANK (ASLI)
+    ========================================= */
     const btnKabur = document.getElementById('btnKabur');
+    const container = document.getElementById('shippingContainer');
     let tingkatKesulitan = 0;
 
     function prosesKabur(e) {
-      // Hitung setiap kali tombol berhasil disentuh/didekati/diklik
+      // Tambah hitungan prank setiap kali kursor mendekati / menyentuh tombol rumah
       dataUltah.jumlah_prank++;
-
       tingkatKesulitan++;
+      
       btnKabur.classList.add('lari-lari');
 
-      const maxX = window.innerWidth - btnKabur.offsetWidth - 30;
-      const maxY = window.innerHeight - btnKabur.offsetHeight - 30;
+      const maxX = container.clientWidth - btnKabur.offsetWidth;
+      const maxY = container.clientHeight - btnKabur.offsetHeight;
 
-      if (tingkatKesulitan === 1) {
-        let currentLeft = btnKabur.getBoundingClientRect().left;
-        let currentTop = btnKabur.getBoundingClientRect().top;
-        
-        let moveX = Math.random() < 0.5 ? 90 : -90;
-        let moveY = Math.random() < 0.5 ? 90 : -90;
-        
-        let targetX = Math.max(20, Math.min(maxX, currentLeft + moveX));
-        let targetY = Math.max(20, Math.min(maxY, currentTop + moveY));
+      const randomX = Math.floor(Math.random() * Math.max(10, maxX));
+      const randomY = Math.floor(Math.random() * Math.max(10, maxY));
 
-        btnKabur.style.left = `${targetX}px`;
-        btnKabur.style.top = `${targetY}px`;
-      } else {
-        const randomX = Math.floor(Math.random() * maxX);
-        const randomY = Math.floor(Math.random() * maxY);
-        
-        btnKabur.style.left = `${Math.max(20, randomX)}px`;
-        btnKabur.style.top = `${Math.max(20, randomY)}px`;
-      }
-
-      if (tingkatKesulitan >= 2) {
-        btnKabur.removeEventListener('mouseenter', prosesKabur);
-        btnKabur.removeEventListener('touchstart', prosesKabur);
-        btnKabur.addEventListener('mouseenter', prosesKabur);
-        btnKabur.addEventListener('touchstart', prosesKabur);
-      }
+      btnKabur.style.left = `${randomX}px`;
+      btnKabur.style.top = `${randomY}px`;
     }
 
-    btnKabur.addEventListener('click', prosesKabur);
+    // Event listener untuk prank lari-lari (mouseenter & touchstart)
+    btnKabur.addEventListener('mouseenter', prosesKabur);
+    btnKabur.addEventListener('touchstart', prosesKabur);
 
     /* SELESAI & SIMPAN DATA */
     function selesaiMau(metode) {
@@ -546,15 +535,15 @@
       dataUltah.pilihan_kado = kado;
       dataUltah.metode_pengiriman = metode;
 
+      // KIRIM KE DATABASE INFINITYFREE DULU
+      simpanKeDatabase();
+
       document.getElementById('stepMau2').classList.add('hidden');
       document.getElementById('actionMau2').classList.add('hidden');
       
       document.getElementById('stepMauPenutup').classList.remove('hidden');
       document.getElementById('pesanAkhirMau').innerText = 
         `Siap! Kado "${kado}" bakal disiapin dan ${metode.toLowerCase()}. Tunggu ya! 🎁🎉`;
-
-      // KIRIM KE DATABASE INFINITYFREE
-      simpanKeDatabase();
     }
 
     function selesaiTidak() {
@@ -562,15 +551,15 @@
 
       dataUltah.alasan_tidak = alasan;
 
+      // KIRIM KE DATABASE INFINITYFREE DULU
+      simpanKeDatabase();
+
       document.getElementById('stepTidak1').classList.add('hidden');
       document.getElementById('actionTidak1').classList.add('hidden');
       
       document.getElementById('stepTidakPenutup').classList.remove('hidden');
       document.getElementById('pesanAkhirTidak').innerText = 
         `Gak apa-apa kok kalau gak mau kado. Alasan kamu ("${alasan}") udah dicatet. Yang penting kamu bahagia di hari ultah ini! 🤍`;
-
-      // KIRIM KE DATABASE INFINITYFREE
-      simpanKeDatabase();
     }
   </script>
 </body>
